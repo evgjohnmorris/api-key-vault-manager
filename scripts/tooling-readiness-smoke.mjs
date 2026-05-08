@@ -17,9 +17,6 @@ try {
   const indexHtml = await read("index.html");
   const gitignore = await read(".gitignore");
   const envExample = await read(".env.example");
-  const vscodeTasks = JSON.parse(await read(".vscode/tasks.json"));
-  const vscodeExtensions = JSON.parse(await read(".vscode/extensions.json"));
-  const cursorRules = await read(".cursor/rules/api-key-vault-manager.mdc");
   const agentInstructions = await read("AGENTS.md");
   const readinessDoc = await read("docs/tooling-integration-readiness.md");
   const connectivityPlan = await read("docs/tooling-connectivity-plan.md");
@@ -40,9 +37,8 @@ try {
   check("Provider catalog still has broad coverage", PROVIDER_TEMPLATES.length >= 20, `${PROVIDER_TEMPLATES.length} provider templates`);
   check("Environment example is secret-safe", secretSafeEnvExample(envExample), ".env.example has placeholders only");
   check("Ignored local secret files remain ignored", allIncluded(gitignore, [".env", ".env.*", "credentials*.json", "service-account*.json", "*.vault.json"]), "secret-bearing files ignored");
-  check("VS Code tasks cover local loops", taskLabels(vscodeTasks).includes("test:full") && taskLabels(vscodeTasks).includes("smoke:tooling") && taskLabels(vscodeTasks).includes("serve"), taskLabels(vscodeTasks).join(", "));
-  check("VS Code recommendations are present", Array.isArray(vscodeExtensions.recommendations) && vscodeExtensions.recommendations.includes("ms-playwright.playwright"), "Playwright extension recommended");
-  check("Cursor rules enforce no-secret posture", allIncluded(cursorRules, ["alwaysApply: true", "Do not paste real API keys", "npm run smoke:tooling"]), "Cursor rule has safety and tooling gate");
+  check("Local editor state stays untracked", allIncluded(gitignore, [".cursor/", ".vscode/"]), "editor and agent local state ignored for public release");
+  check("Package scripts cover local loops", allIncluded(packageJson.scripts || {}, ["doctor", "check", "smoke:tooling", "test:fast", "smoke", "lab", "test:full", "serve"]), "repo scripts replace local editor tasks in CI");
   check("Agent instructions support Codex and Antigravity", allIncluded(agentInstructions, ["Codex", "Antigravity", "Do not store plaintext secrets", "npm run test:fast"]), "shared agent contract present");
   check("Readiness documentation covers named platforms", REQUIRED_TOOLING_IDS.every((id) => readinessDoc.includes(id)), "named platforms covered in readiness doc");
   check("Connectivity plan names staged adapters", allIncluded(connectivityPlan, ["Google Cloud", "Cloudflare", "Supabase", "n8n", "Pipedream", "Notion", "ClickUp"]), "connectivity plan includes target adapters");
@@ -75,12 +71,9 @@ function secretSafeEnvExample(text) {
     && text.includes("<set-in-private-secret-store>");
 }
 
-function taskLabels(tasksJson) {
-  return (tasksJson.tasks || []).map((task) => task.label).sort();
-}
-
 function allIncluded(text, fragments) {
-  return fragments.every((fragment) => String(text || "").includes(fragment));
+  const haystack = typeof text === "string" ? text : JSON.stringify(text || {});
+  return fragments.every((fragment) => haystack.includes(fragment));
 }
 
 function check(name, pass, detail) {
