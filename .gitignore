@@ -1,0 +1,33 @@
+# Dependencies and build output
+node_modules/
+dist/
+build/
+.cache/
+
+# Local environment files
+.env
+.env.*
+!.env.example
+
+# Local editor/agent state
+.cursor/
+.vscode/
+.codex/
+*.local
+
+# Vault exports and secret-bearing files
+vault-exports/
+*.vault.json
+*.secrets.json
+*.secret.json
+*.key
+*.pem
+*.p12
+*.pfx
+service-account*.json
+credentials*.json
+
+# Operating system noise
+.DS_Store
+Thumbs.db
+desktop.ini
